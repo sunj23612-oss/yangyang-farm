@@ -1,0 +1,10 @@
+farm.db
+farm.db-wal
+farm.db-shm
+__pycache__/
+*.pyc
+*.zip
+.git/
+.gitignore
+.DS_Store
+test_*.py

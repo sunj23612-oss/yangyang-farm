@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# 本地 SQLite（云端走 Turso，本地 db 不入库）
+farm.db
+farm.db-shm
+farm.db-wal
+
+# 备份与临时
+*.bak*
+*.bak_petswap
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store

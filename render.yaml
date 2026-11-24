@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: yangyang-farm
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "echo 'no build needed - pure stdlib'"
+    startCommand: "python server.py"
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: TURSO_URL
+        sync: false
+      - key: TURSO_TOKEN
+        sync: false
