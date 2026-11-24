@@ -210,7 +210,8 @@ def _split_statements(script):
             continue
         cur.append(line)
         if line.endswith(";"):
-            out.append(" ".join(cur))
+            # 用换行拼接以保留行注释语义（-- 注释只到行尾，不能压成一行）
+            out.append("\n".join(cur))
             cur = []
     if cur:
         out.append(" ".join(cur))
