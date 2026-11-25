@@ -3678,7 +3678,7 @@ let nm = k, icon = null, emoji = null, act = null, actTip = null;
   rows.forEach(r => {
     html += `<div class="list-row">
       ${r.icon ? `<img class="pixel" src="${r.icon}">` : `<span style="font-size:30px;">${r.emoji}</span>`}
-      <div><div class="row-name">${r.nm}</div><div class="row-sub">数量 ${r.n}${r.actTip ? " · " + r.actTip : ""}</div></div>
+      <div><div class="row-name">${r.nm}</div><div class="row-sub">数量 ${r.n}${r.actTip ? " · " + r.actTip : ""}${r.sell ? " · 💰 可卖 " + sellPriceOf(r.k) + " 币" : ""}</div></div>
       <div class="row-right">
         ${r.act || ""}
         ${r.sell ? `<button class="btn small orange" data-selli="${r.k}">卖1个</button>` : ""}
