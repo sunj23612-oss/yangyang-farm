@@ -1484,25 +1484,25 @@ const PAL = {
 };
 
 const CROPS = {
-  // 生长节奏：约 1 游戏天 = 240 tick（湿润约 480 grow/天），grow 以游戏天计：整体拉长至"一季左右成熟"，
+  // 生长节奏：约 1 游戏天 = 480 tick（湿润约 960 grow/天），grow 以游戏天计：整体拉长至"一季左右成熟"，
   // 玉米春种秋收（跨春夏约 36 天收）。season: 应季播种季（0春 1夏 2秋 3冬）— 应季 1.0x，反季可种但减半 0.5x，
   // 冬季天寒所有在田作物再放缓 0.6x，且冬季仅耐寒作物（season 含 3）可下种。
-  cabbage:  { name:"白菜",   seed:10, sell:16, grow:7200, season:[2,3], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} },   // 秋/冬播种，约 20 天成熟
-  carrot:   { name:"胡萝卜", seed:14, sell:24, grow:5800, season:[0,2], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fOrange} },  // 春/秋播种，约 16 天
-  tomato:   { name:"西红柿", seed:16, sell:28, grow:8600, season:[0,1], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fRed} },    // 春/夏播种，约 24 天
-  corn:     { name:"玉米",   seed:18, sell:32, grow:13000, season:[0],  pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fYellow} },  // 仅春季播种，春种秋收约 36 天
-  potato:   { name:"土豆",   seed:12, sell:20, grow:6500, season:[0,2], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.soilD} },   // 春/秋播种，约 18 天
-  eggplant: { name:"茄子",   seed:20, sell:36, grow:9400, season:[0,1], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fPurple} }, // 春/夏播种，约 26 天
-  radish:   { name:"白萝卜", seed:12, sell:20, grow:5000, season:[2,3], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:"#b5405c"} },   // 秋/冬耐寒，约 14 天
-  spinach:  { name:"菠菜",   seed:8,  sell:14, grow:4300, season:[3,0], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} }    // 冬/春耐寒，约 12 天
+cabbage:  { name:"白菜",   seed:10, sell:16, grow:14400, season:[2,3], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} },   // 秋/冬播种，约 20 天成熟
+  carrot:   { name:"胡萝卜", seed:14, sell:24, grow:11600, season:[0,2], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fOrange} },  // 春/秋播种，约 16 天
+  tomato:   { name:"西红柿", seed:16, sell:28, grow:17200, season:[0,1], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fRed} },    // 春/夏播种，约 24 天
+  corn:     { name:"玉米",   seed:18, sell:32, grow:26000, season:[0],  pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fYellow} },  // 仅春季播种，春种秋收约 36 天
+  potato:   { name:"土豆",   seed:12, sell:20, grow:13000, season:[0,2], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.soilD} },   // 春/秋播种，约 18 天
+  eggplant: { name:"茄子",   seed:20, sell:36, grow:18800, season:[0,1], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fPurple} }, // 春/夏播种，约 26 天
+  radish:   { name:"白萝卜", seed:12, sell:20, grow:10000, season:[2,3], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:"#b5405c"} },   // 秋/冬耐寒，约 14 天
+  spinach:  { name:"菠菜",   seed:8,  sell:14, grow:8600,  season:[3,0], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} }    // 冬/春耐寒，约 12 天
 };
 
 const FLOWERS = {
-  daisy:    { name:"雏菊",   seed:10, sell:18, grow:18, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pWhite, h:PAL.hYellow} },
-  sunflower:{ name:"向日葵", seed:14, sell:26, grow:26, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pYellow,h:PAL.hBrown} },
-  tulip:    { name:"郁金香", seed:16, sell:30, grow:30, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pRed,   h:PAL.hYellow} },
-  lavender: { name:"薰衣草", seed:18, sell:32, grow:34, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pPurple,h:PAL.hYellow} },
-  rose:     { name:"玫瑰",   seed:22, sell:40, grow:38, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pPink,  h:PAL.hYellow} }
+daisy:    { name:"雏菊",   seed:10, sell:18, grow:36, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pWhite, h:PAL.hYellow} },
+  sunflower:{ name:"向日葵", seed:14, sell:26, grow:52, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pYellow,h:PAL.hBrown} },
+  tulip:    { name:"郁金香", seed:16, sell:30, grow:60, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pRed,   h:PAL.hYellow} },
+  lavender: { name:"薰衣草", seed:18, sell:32, grow:68, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pPurple,h:PAL.hYellow} },
+  rose:     { name:"玫瑰",   seed:22, sell:40, grow:76, pal:{t:PAL.soil, s:PAL.stem, p:PAL.pPink,  h:PAL.hYellow} }
 };
 
 const FOODS = {
@@ -4531,7 +4531,7 @@ a.img.src = (Math.floor(a.walkF) % 2 === 0) ? a.frames[5] : (a.frames[6] || a.fr
   });
 }
 
-/* ---- 昼夜与季节（游戏时间：1 小时=10 秒，1 天=240 秒，原 60 秒/天 放缓 4 倍） ---- */
+/* ---- 昼夜与季节（游戏时间：1 小时=20 秒，1 天=480 秒，原 60 秒/天 放缓 8 倍） ---- */
 const SEASON_NAMES = ["春", "夏", "秋", "冬"];
 const SEASON_CLS = ["season-spring", "season-summer", "season-autumn", "season-winter"];
 function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
@@ -4611,19 +4611,19 @@ setInterval(() => {
   tickGrowth();
   tickCooking();
   fieldTick++;
-  // 每秒 = 游戏 6 分钟：1 小时 = 10 秒，1 天 = 240 秒
-  G.hour = ((G.hour || 0) + 6 / 60) % 24;
+// 每秒 = 游戏 3 分钟：1 小时 = 20 秒，1 天 = 480 秒（较初版 60 秒/天 放缓 8 倍）
+  G.hour = ((G.hour || 0) + 3 / 60) % 24;
   if (fieldTick % 15 === 0) {
-    // 每 15 秒（游戏 1.5 小时）刷新一次夜幕与时钟
+    // 每 15 秒（游戏 45 分钟）刷新一次夜幕与时钟
     updateDayNight();
     applyClockLabel();
   }
-  if (fieldTick % 30 === 0) {
-    // 每 30 秒恢复 1 体力
+  if (fieldTick % 60 === 0) {
+    // 每 60 秒（游戏 3 小时）恢复 1 体力，保持 1 天 8 点
     G.energy = Math.min(G.maxEnergy, G.energy + 1);
     refreshHud();
   }
-  if (fieldTick % 240 === 0) advanceDayCycle();
+  if (fieldTick % 480 === 0) advanceDayCycle();
 }, 1000);
 // 推进一天（天+1、闲置退化、季节轮换、刷新显示）；主循环跨天与屋内睡觉共用
 function advanceDayCycle() {
@@ -4810,25 +4810,25 @@ function sleepAtHome() {
   if (h && h.frames[7]) h.img.src = h.frames[7]; // 睡姿（静止帧占位，配合夜幕）
   HP.wakeT = setTimeout(() => {
     if (!HP) return;
-    // 作物/花按跳过的一天推进生长（睡觉期间不加新杂草）
+// 作物/花按跳过的一天推进生长（睡觉期间不加新杂草）
     (G.field || []).forEach(c => {
       if (!c || !c.crop) return;
 const grow = CROPS[c.crop].grow;
       let step = c.wet ? 2 : 1; if (c.fert) step += c.fert;
       step *= cropSeasonFactor(c.crop);    // 蔬菜按季节生长：反季减半
-      c.prog = Math.min(grow, c.prog + step * 240);
+      c.prog = Math.min(grow, c.prog + step * 480);
       c.stage = Math.min(3, Math.floor(c.prog / (grow / 3)));
     });
     (G.garden || []).forEach(c => {
       if (!c) return;
       const grow = FLOWERS[c.flower].grow;
       let step = c.wet ? 2 : 1; if (c.fert) step += c.fert;
-      c.prog = Math.min(grow, c.prog + step * 240);
+      c.prog = Math.min(grow, c.prog + step * 480);
       c.stage = Math.min(3, Math.floor(c.prog / (grow / 3)));
     });
     renderField(); renderGarden();
     // 跨天：推进到下一个天数边界，醒来为次日早晨 06:00
-    fieldTick += (240 - fieldTick % 240) % 240 || 240;
+    fieldTick += (480 - fieldTick % 480) % 480 || 480;
     G.hour = 6;
     G.energy = G.maxEnergy;
     advanceDayCycle();

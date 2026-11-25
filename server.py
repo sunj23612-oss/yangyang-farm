@@ -568,14 +568,20 @@ class Handler(BaseHTTPRequestHandler):
                 if not (victim_hour >= 19 or victim_hour < 6):
                     return send_json(self, 403, {"ok": False,
                                                  "err": "☀️ 现在是白天（好友农场 %d 点），晚上 19 点后再来偷菜吧！" % victim_hour})
-                # 守夜狗概率拦截：好友农场有守夜狗时，偷菜有概率被赶跑（不消耗今日额度）
+                # 守夜狗概率拦截：好友农场有守夜狗时，偷菜有概率被赶跑（被拦同样消耗今日次数）
                 guard_dogs = [p for p in (save.get("pets") or [])
                               if isinstance(p, dict) and p.get("guard") and p.get("kind") == "dog"]
                 if guard_dogs and random.random() < GUARD_STEAL_BLOCK:
                     gd = guard_dogs[0]
+                    # 记一条「被守夜狗拦下」的记录占今日次数（作物不动）
+                    db().execute(
+                        "INSERT INTO steals(thief, victim, kind, idx, crop, day, created) VALUES(?,?,?,?,?,?,?)",
+                        (u, victim, kind, idx, "blocked", today_key(), int(time.time())))
+                    db().commit()
+                    left = STEAL_LIMIT_PER_FRIEND - steal_count_today(u, victim)
                     return send_json(self, 409, {"ok": False,
                                                  "err": "🐕 " + str(gd.get("name") or "守夜狗")
-                                                        + " 汪汪扑来把你赶跑了，偷菜失败（不扣今日次数）！"})
+                                                        + " 汪汪扑来把你赶跑了，偷菜失败（已扣 1 次今日次数，今日剩余 %d 次）！" % left})
                 crop = steal_from_victim(u, victim, kind, idx, save)
                 if crop is None:
                     return send_json(self, 409, {"ok": False, "err": "这格没有成熟的作物可以偷"})
