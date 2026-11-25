@@ -3039,8 +3039,8 @@ model: (pet && pet.model) || null,
     // 侧面素材 face:-1 表示头朝右，需要反向（如 cat_orange）。
     faceFlip: (pet && PET_MODELS[pet.model] && PET_MODELS[pet.model].front) ? 0
               : ((pet && PET_MODELS[pet.model] && PET_MODELS[pet.model].face === -1) ? -1 : 1),
-    x: 40 + Math.random()*960, y: 296 + Math.random()*216,
-    tx: 0, ty: 0, speed: 30 + Math.random()*30,
+x: 40 + Math.random()*960, y: 296 + Math.random()*216,
+    tx: 0, ty: 0, speed: (isPet || pet) ? 30 + Math.random()*30 : 58 + Math.random()*12,
     mode: "idle", frame: 0, blinkT: 0, timer: 0, sleepT: 0, canSleep: !!canSleep,
     walkF: 0, actT: 0, fav: pet ? pet.fav : (id in G.cats ? G.cats[id].fav : 0),
     badT: 0, scaredT: 0, shooTarget: null
@@ -5121,9 +5121,9 @@ function FPTick() {
   if (dx || dy) {
     h.pending = null;
     h.mode = "idle";
-    h.walkF += 0.3;
+h.walkF += 0.3;
     const bob = (Math.floor(h.walkF * 2) % 2 === 0) ? 0 : -2;
-    const step = 5;
+    const step = 7;
     const len = Math.hypot(dx, dy) || 1;
     h.x = Math.max(20, Math.min(1080 - 64, h.x + dx / len * step));
     h.y = Math.max(238, Math.min(640 - 44, h.y + dy / len * step));
@@ -5144,9 +5144,9 @@ function FPTick() {
       if (pk) fpSteal(pk.kind, pk.idx);
       return;
     }
-    h.walkF += 0.3;
+h.walkF += 0.3;
     const bob = (Math.floor(h.walkF * 2) % 2 === 0) ? 0 : -2;
-    const step = 5;
+    const step = 7;
     h.x += ddx / dist * step;
     h.y += ddy / dist * step;
     h.div.style.left = h.x + "px";
