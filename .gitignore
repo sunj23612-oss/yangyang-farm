@@ -22,3 +22,6 @@ farm.db-wal
 .idea/
 *.swp
 .DS_Store
+
+# 素材工作与临时目录
+.dumate/
