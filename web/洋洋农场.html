@@ -653,6 +653,20 @@ width:720px; max-width:calc(100vw - 28px); max-height:82vh; display:flex; flex-d
     font-weight:bold; cursor:pointer; line-height:1; }
   .btn-mini:hover { background:#f5e6c8; }
   .btn-mini:disabled { opacity:.35; cursor:not-allowed; }
+  /* 宠物页面卡片 */
+  .pet-card { display:flex; gap:12px; align-items:center; margin:10px 0; padding:10px; background:#fff8e7; border:2px solid #e0c89a; border-radius:10px; }
+  .pet-card img { width:72px; height:72px; image-rendering:pixelated; }
+  .pet-info { flex:1; min-width:0; }
+  .pet-info .pet-name { font-weight:bold; font-size:15px; color:#5d4037; }
+  .pet-info .pet-kind { font-size:12px; color:#8a6d3b; }
+  .pet-bar { display:flex; align-items:center; gap:6px; margin-top:5px; font-size:12px; color:#5d4037; }
+  .pet-bar .bar { flex:1; height:12px; background:#ead9b5; border-radius:6px; overflow:hidden; border:1px solid #cfa75a; }
+  .pet-bar .bar i { display:block; height:100%; border-radius:6px; }
+  .bar-fav i { background:linear-gradient(90deg,#ff9db9,#ff5c8a); }
+  .bar-fed i { background:linear-gradient(90deg,#ffd166,#ff9f1c); }
+  .pet-tag { font-size:11px; padding:1px 7px; border-radius:8px; color:#fff; }
+  .pet-tag.ok { background:#67b26f; } .pet-tag.warn { background:#f39c12; } .pet-tag.bad { background:#e74c3c; }
+  .pet-actions { display:flex; flex-direction:column; gap:5px; }
   .hero-row, .pet-row { display:flex; gap:6px; align-items:center; margin:7px 0; flex-wrap:wrap; }
   .hero-row label, .pet-row label { font-size:12px; color:#8a6d3b; margin-right:-2px; white-space:nowrap; }
   .hero-row input[type=text], .pet-row input[type=text] { flex:1; min-width:90px; }
@@ -885,10 +899,10 @@ width:720px; max-width:calc(100vw - 28px); max-height:82vh; display:flex; flex-d
   <!-- 工具栏：平时是空手（点击移动），锄头/水壶/种子从背包装备到手上使用 -->
   <div id="toolbar">
     <button class="btn equip-btn" id="btn-hand" title="当前手上装备，点击卸下回到空手">🖐️ 走路</button>
-    <div id="toolbar-right">
+<div id="toolbar-right">
       <button class="btn lg" id="btn-market">🏪 商店</button>
       <button class="btn lg" id="btn-cook">🍳 厨房</button>
-      
+      <button class="btn lg" id="btn-pets">🐾 宠物</button>
       <button class="btn lg" id="btn-inv">🎒 背包</button>
 </div>
   </div>
@@ -1026,6 +1040,19 @@ width:720px; max-width:calc(100vw - 28px); max-height:82vh; display:flex; flex-d
         <div id="steal-msg"></div>
         <div class="f-note">黄色格子 = 成熟作物，点它偷菜 🍅（每天每位好友限偷 3 次）</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 宠物弹窗 -->
+<div class="modal-mask" id="pets-mask">
+  <div class="modal" style="width:520px;">
+    <div class="modal-title">🐾 我的宠物
+      <button class="modal-close" data-close="pets-mask">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="pets-body"><div class="f-note">加载中…</div></div>
+      <div class="f-note" style="text-align:center;">好感度靠喂鱼提升，好感越高越少捣乱偷菜；饱腹度随时间减少，喂食能恢复，饿着肚子可不爱干活</div>
     </div>
   </div>
 </div>
@@ -3040,7 +3067,7 @@ model: (pet && pet.model) || null,
     faceFlip: (pet && PET_MODELS[pet.model] && PET_MODELS[pet.model].front) ? 0
               : ((pet && PET_MODELS[pet.model] && PET_MODELS[pet.model].face === -1) ? -1 : 1),
 x: 40 + Math.random()*960, y: 296 + Math.random()*216,
-    tx: 0, ty: 0, speed: (isPet || pet) ? 30 + Math.random()*30 : 58 + Math.random()*12,
+    tx: 0, ty: 0, speed: (isPet || pet) ? 30 + Math.random()*30 : 72 + Math.random()*14,
     mode: "idle", frame: 0, blinkT: 0, timer: 0, sleepT: 0, canSleep: !!canSleep,
     walkF: 0, actT: 0, fav: pet ? pet.fav : (id in G.cats ? G.cats[id].fav : 0),
     badT: 0, scaredT: 0, shooTarget: null
@@ -3714,18 +3741,31 @@ let nm = k, icon = null, emoji = null, act = null, actTip = null;
     };
   });
 }
-/* ---- 宠物投喂：扣食材、加好感（上楼前先兼容新旧宠物） ---- */
-function feedCat(key) {
-  if (!G.inv[key] || !G.inv[key] > 0) return;
-  // 自动选择好感度较低的宠物来喂，雨露均沾
-  const pets = actors.filter(a => a.isPet).sort((x, y) => x.fav - y.fav);
+/* ---- 宠物投喂：扣食材、加好感加饱腹（指定宠物 petId 缺省自动选好感最低者） ---- */
+function feedCat(key, petId) {
+  if (!G.inv[key] || !(G.inv[key] > 0)) return;
+  // 未指定时自动选择好感度较低的宠物来喂，雨露均沾
+  const pets = actors.filter(a => a.isPet);
   if (!pets.length) return;
-  const fid = key.slice(5);
+  if (petId) {
+    const one = pets.find(a => a.id === petId);
+    if (!one) return;
+    pets.length = 1; pets[0] = one;
+  }
+  pets.sort((x, y) => x.fav - y.fav);
   const pet = pets[0];
   const rec = (G.pets || []).find(q => q.id === pet.id);
   G.inv[key] -= 1;
-  if (rec) { rec.fav = clampFav((rec.fav || 0) + 3); pet.fav = rec.fav; }
-  else { pet.fav += 3; }
+  // 鱼 +18 饱腹，料理 +12 饱腹（料理更能顶饿则此处鱼更优，数值可配）
+  const fid = key.slice(5);
+  const isDish = key.startsWith("dish_");
+  const fedGain = isDish ? 12 : 18;
+  if (rec) {
+    rec.fav = clampFav((rec.fav || 0) + 3); pet.fav = rec.fav;
+    rec.fed = clampFed((rec.fed || 0) + fedGain); pet.fed = rec.fed;
+  } else {
+    pet.fav += 3; pet.fed = clampFed((pet.fed || 0) + fedGain);
+  }
   addExp(5);
   // 进食动画：动作帧 + 跳跃 + 爱心 + 气泡
   pet.actT = 1.6;
@@ -3733,16 +3773,21 @@ function feedCat(key) {
   void pet.div.offsetWidth;
   pet.div.classList.add("jump");
   spawnHeart(pet.div);
-  const foodName = (FISH[fid] && FISH[fid].name) || key;
+  const foodName = (FISH[fid] && FISH[fid].name) || (isDish ? "料理" : key);
   say(pet.div, petLine(rec || pet, "feed"));
   const lvl = Math.floor(pet.fav / 10) + 1;
   if (pet.fav % 10 === 0) {
-    toast("❤️ " + pet.name + " 好感度达到 Lv." + lvl + "！");
+    toast("❤️ " + pet.name + " 好感度达到 Lv." + lvl + "！饱腹 +" + fedGain);
     spawnHeart(pet.div); spawnHeart(pet.div);
   } else {
-    toast("😸 " + pet.name + " 吃掉了" + foodName + "，好感 +3！");
+    toast("😸 " + pet.name + " 吃掉了" + foodName + "，好感 +3、饱腹 +" + fedGain + "！");
   }
   renderInv(); refreshHud();
+  if ($("pets-mask").classList.contains && $("pets-mask").classList.contains("show")) renderPetsPage();
+}
+function feedPet(src) {
+  if (!src || !G.inv[src]) { toast("背包里没有鱼或料理啦"); return; }
+  feedCat(src, null);
 }
 function renderInvIfOpen() {
   if ($("inv-mask").classList.contains("show")) renderInv();
@@ -4330,19 +4375,21 @@ if (a.timer <= 0) {
       return;
     }
     a.blinkT -= 0.1;
-    // 小人警惕扫描：附近有正在干坏事的宠物时，有概率上前驱赶（睡着/拖动时不管）
+// 小人警惕扫描：附近有正在干坏事/正要去干坏事的宠物时，上前驱赶（睡着/拖动时不管）
     if (!a.isPet && a.id !== heroId && !a.shooTarget && a.actT <= 0 && a.scaredT <= 0) {
       a.alertT = (a.alertT || 0) - 0.1;
       if (a.alertT <= 0) {
-        a.alertT = 0.8 + Math.random() * 0.7;   // 约每秒扫一次
-        const badCat = actors.find(c => c.isPet && c.badT > 0 && !c.dragging && Math.hypot(c.x - a.x, c.y - a.y) < 520);
-        if (badCat && Math.random() < 0.6) {
+        a.alertT = 0.6 + Math.random() * 0.5;   // 扫得更勤（约每秒 1~2 次）
+        // 目标=正在偷吃/踩坏（badT>0 现行窗口），或正奔着菜地去的宠物（farmTask 偷吃/踩坏）
+        const isBad = c => c.isPet && !c.dragging && (c.badT > 0 || (c.farmTask && (c.farmTask.act === "steal" || c.farmTask.act === "stomp")));
+        const badCat = actors.find(c => isBad(c) && Math.hypot(c.x - a.x, c.y - a.y) < 700);
+        if (badCat && Math.random() < 0.85) {
           a.shooTarget = badCat;
           a.mode = "walk";
           a.tx = badCat.x; a.ty = badCat.y;
-          a.timer = 8;
+          a.timer = 10;
           a.walkF = 0;
-          say(a.div, "哎！" + badCat.name + " 想偷菜！");
+          say(a.div, badCat.badT > 0 ? ("哎！" + badCat.name + " 想偷菜！") : ("站住！" + badCat.name + " 别踩菜！"));
           return;
         }
       }
@@ -4628,6 +4675,20 @@ setInterval(() => {
 // 推进一天（天+1、闲置退化、季节轮换、刷新显示）；主循环跨天与屋内睡觉共用
 function advanceDayCycle() {
   G.day += 1;
+  // 饱腹度结算：每游戏天（480 tick ≈ 8 分钟现实）消耗 8 点；吃饱饱(>=80)次日好感 +1，饿扁了(=0)次日好感 -3
+  let fedWell = 0, fedStarved = 0;
+  (G.pets || []).forEach(p => {
+    if (!p) return;
+    const fd = clampFed((p.fed || 0) - 8);
+    p.fed = fd;
+    const pa = actors.find(x => x.id === p.id);
+    if (pa) pa.fed = fd;
+    if (fd >= 80) { p.fav = clampFav((p.fav || 0) + 1); fedWell++; }
+    else if (fd === 0) { p.fav = clampFav((p.fav || 0) - 3); fedStarved++; }
+    if (pa) pa.fav = p.fav;
+  });
+  if (fedWell) toast("🍖 " + fedWell + " 只宠物吃得饱饱，好感 +1！");
+  if (fedStarved) toast("😿 " + fedStarved + " 只宠物饿扁了，好感 -3");
   // 守夜结算：狗守夜一夜，天亮(0:00)略微掉好感（缓慢扣，逐夜累积；猫不可守夜不参与）
   let guardN = 0;
   (G.pets || []).forEach(p => {
@@ -4670,6 +4731,7 @@ function openModal(id) { $(id).classList.add("show"); }
 $("btn-market").onclick = () => { openModal("market-mask"); refreshMarket(); };
 $("btn-cook").onclick = () => { openModal("cook-mask"); renderCook(); };
 $("btn-inv").onclick = () => { openModal("inv-mask"); renderInv(); };
+$("btn-pets").onclick = () => { openPetsPage(); };
 
 // 进小屋：先走到正门外，再进屋（出门同理由屋内大门）
 $("house").onclick = () => {
@@ -5120,10 +5182,10 @@ function FPTick() {
   const dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
   if (dx || dy) {
     h.pending = null;
-    h.mode = "idle";
+h.mode = "idle";
 h.walkF += 0.3;
     const bob = (Math.floor(h.walkF * 2) % 2 === 0) ? 0 : -2;
-    const step = 7;
+    const step = 9;
     const len = Math.hypot(dx, dy) || 1;
     h.x = Math.max(20, Math.min(1080 - 64, h.x + dx / len * step));
     h.y = Math.max(238, Math.min(640 - 44, h.y + dy / len * step));
@@ -5141,12 +5203,12 @@ h.walkF += 0.3;
       h.img.src = h.frames[0];
       h.div.style.top = h.y + "px";
       const pk = h.pending; h.pending = null;
-      if (pk) fpSteal(pk.kind, pk.idx);
+if (pk) fpSteal(pk.kind, pk.idx);
       return;
     }
 h.walkF += 0.3;
     const bob = (Math.floor(h.walkF * 2) % 2 === 0) ? 0 : -2;
-    const step = 7;
+    const step = 9;
     h.x += ddx / dist * step;
     h.y += ddy / dist * step;
     h.div.style.left = h.x + "px";
@@ -5249,6 +5311,65 @@ const isDog = kind === "dog";
   return row;
 }
 function nameOf(o, fb) { return (o && o.name && String(o.name).trim()) || fb; }
+
+/* ---- 宠物页面：好感度/饱腹度展示 + 喂食 ---- */
+function clampFed(v) { return Math.max(0, Math.min(100, Math.round(Number(v) || 0))); }
+function fedState(fed) {   // 饱腹状态分级（也用于奖惩阈值判断）
+  if (fed >= 80) return { tag: "吃饱饱", cls: "ok" };
+  if (fed >= 50) return { tag: "还行",  cls: "ok" };
+  if (fed >= 30) return { tag: "有点饿", cls: "warn" };
+  if (fed > 0)  return { tag: "很饿",   cls: "bad" };
+  return { tag: "饿扁了", cls: "bad" };
+}
+function petFeedSource() {   // 背包里第一个可喂的鱼/料理（鱼优先）
+  const has = Object.keys(G.inv || {}).filter(k => (k.startsWith("fish_") || k.startsWith("dish_")) && G.inv[k] > 0);
+  const fish = has.find(k => k.startsWith("fish_"));
+  return fish || has[0] || null;
+}
+function renderPetsPage() {
+  const body = $("pets-body");
+  if (!body) return;
+  if (!G.pets || !G.pets.length) {
+    body.innerHTML = '<div class="f-note" style="text-align:center;padding:14px;">还没有宠物，去 🎨 自定义里添加一只吧！</div>';
+    return;
+  }
+  body.innerHTML = G.pets.map(p => {
+    const fav = clampFav(p.fav), fed = clampFed(p.fed);
+    const lv = Math.floor(fav / 10) + 1;
+    const st = fedState(fed);
+    const model = PET_MODELS[p.model] && PET_MODELS[p.model].name ? PET_MODELS[p.model].name : (p.kind === "dog" ? "狗狗" : "猫咪");
+    const img = PET_MODELS[p.model] && PET_MODELS[p.model].idle && PET_MODELS[p.model].idle[0] ? PET_MODELS[p.model].idle[0] : "";
+    const src = petFeedSource();
+    const feedBtn = '<button class="btn small orange" data-feed="1">🍽 喂食</button>';
+    const noFeed = src
+      ? feedBtn
+      : '<button class="btn small" disabled title="背包里没有鱼或料理">🍽 无食可喂</button>';
+    return '<div class="pet-card">' +
+      (img ? '<img class="pixel" src="' + img + '" alt="">' : '<span style="font-size:46px;">' + (p.kind === "dog" ? "🐕" : "🐈") + "</span>") +
+      '<div class="pet-info">' +
+        '<div class="pet-name">' + escHtml(p.name || "宠物") + '</div>' +
+        '<div class="pet-kind">' + (p.kind === "dog" ? "🐕 狗狗" : "🐈 猫咪") + " · " + escHtml(model) + (p.guard ? " · 🌙 守夜中" : "") + "</div>" +
+        '<div class="pet-bar">❤️ 好感 <div class="bar bar-fav"><i style="width:' + fav + '%"></i></div>' + fav + '/100（Lv.' + lv + "）</div>" +
+        '<div class="pet-bar">🍖 饱腹 <div class="bar bar-fed"><i style="width:' + fed + '%"></i></div>' + fed + '/100 <span class="pet-tag ' + st.cls + '">' + st.tag + "</span></div>" +
+      "</div>" +
+      '<div class="pet-actions">' + noFeed +
+        (p.kind === "dog"
+          ? (p.guard
+              ? '<button class="btn small" data-gturn="0" data-gtid="' + p.id + '">🌙 守夜中</button>'
+              : '<button class="btn small" data-gturn="1" data-gtid="' + p.id + '">💤 去守夜</button>')
+          : "") + "</div>" +
+    "</div>";
+  }).join("");
+  body.querySelectorAll("[data-feed]").forEach(b => b.onclick = () => feedPet(petFeedSource()));
+  body.querySelectorAll("[data-gturn]").forEach(b => b.onclick = () => {
+    const rec = (G.pets || []).find(p => p.id === b.dataset.gtid);
+    if (!rec) return;
+    rec.guard = b.dataset.gturn === "1";
+    toast(rec.guard ? "🌙 " + rec.name + " 开始守夜，夜里会驱赶偷菜猫咪" : "☀️ " + rec.name + " 不再守夜了");
+    renderPetsPage();
+  });
+}
+function openPetsPage() { renderPetsPage(); openModal("pets-mask"); }
 function fillCustomForm() {
   const ff = $("custom-farm-name"); if (ff) ff.value = G.farmName || "洋洋农场";
   G.heroes = (G.heroes && G.heroes.length) ? G.heroes.slice(0, 2) : [{ id:"h1", name:"徐明韬", gender:"male", skin:"xu" }];
