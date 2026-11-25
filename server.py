@@ -28,6 +28,7 @@ import hmac
 import json
 import mimetypes
 import os
+import random
 import re
 import secrets
 import sqlite3
@@ -54,6 +55,7 @@ PASSWORD_RE = re.compile(r"^[\x21-\x7e]{4,32}$")   # 可见 ASCII 4~32 位
 TOKEN_BYTES = 32
 STEAL_LIMIT_PER_FRIEND = 3          # 每天最多偷同一位好友 3 次
 STEAL_DAY_SECONDS = 86400
+GUARD_STEAL_BLOCK = 0.5             # 对方农场有守夜狗时，每次偷菜被赶跑的概率
 MAX_SAVE_BYTES = 1024 * 1024        # 存档上限 1MB
 FRIEND_LIMIT = 50                   # 好友上限
 FIELD_CELLS = 24                    # 菜地格子数
@@ -336,7 +338,8 @@ def steal_count_today(thief, victim):
 
 
 def public_farm(save):
-    """好友视角的农场公开信息：只暴露格子类型与成熟度，不暴露背包/金币/存档细节。"""
+    """好友视角的农场公开信息：只暴露格子类型与成熟度，不暴露背包/金币/存档细节。
+    额外提供对方农场当前小时（hour）与宠物摘要（含守夜狗），供前端做昼夜与守夜提示。"""
     if not isinstance(save, dict):
         save = {}
     field = []
@@ -353,7 +356,18 @@ def public_farm(save):
     for i in range(GARDEN_CELLS):
         cell = src_garden[i] if i < len(src_garden) else None
         garden.append(_pub_cell(cell, "flower"))
-    return {"field": field, "garden": garden, "day": save.get("day", 1)}
+    pets = []
+    for p in (save.get("pets") or []):
+        if not isinstance(p, dict):
+            continue
+        pets.append({"id": str(p.get("id") or "")[:20],
+                     "name": str(p.get("name") or "宠物")[:12],
+                     "kind": "dog" if p.get("kind") == "dog" else "cat",
+                     "guard": bool(p.get("guard"))})
+    h = save.get("hour")
+    hour = int(h) if isinstance(h, (int, float)) and not isinstance(h, bool) else 6
+    return {"field": field, "garden": garden, "day": save.get("day", 1),
+            "hour": hour, "pets": pets}
 
 
 def _pub_cell(cell, key):
@@ -548,6 +562,20 @@ class Handler(BaseHTTPRequestHandler):
                 save = load_save(victim)
                 if save is None:
                     return send_json(self, 404, {"ok": False, "err": "好友还没建立农场存档"})
+                # 好友偷菜仅限夜间（以对方农场当前小时计：晚上 19:00 - 次日 6:00）
+                h = save.get("hour")
+                victim_hour = int(h) if isinstance(h, (int, float)) and not isinstance(h, bool) else 6
+                if not (victim_hour >= 19 or victim_hour < 6):
+                    return send_json(self, 403, {"ok": False,
+                                                 "err": "☀️ 现在是白天（好友农场 %d 点），晚上 19 点后再来偷菜吧！" % victim_hour})
+                # 守夜狗概率拦截：好友农场有守夜狗时，偷菜有概率被赶跑（不消耗今日额度）
+                guard_dogs = [p for p in (save.get("pets") or [])
+                              if isinstance(p, dict) and p.get("guard") and p.get("kind") == "dog"]
+                if guard_dogs and random.random() < GUARD_STEAL_BLOCK:
+                    gd = guard_dogs[0]
+                    return send_json(self, 409, {"ok": False,
+                                                 "err": "🐕 " + str(gd.get("name") or "守夜狗")
+                                                        + " 汪汪扑来把你赶跑了，偷菜失败（不扣今日次数）！"})
                 crop = steal_from_victim(u, victim, kind, idx, save)
                 if crop is None:
                     return send_json(self, 409, {"ok": False, "err": "这格没有成熟的作物可以偷"})

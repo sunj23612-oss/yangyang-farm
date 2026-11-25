@@ -738,7 +738,10 @@ width:720px; max-width:calc(100vw - 28px); max-height:82vh; display:flex; flex-d
   .fp-cell img { width:60px; height:60px; }
   #fp-steal-msg { position:absolute; left:50%; top:70px; transform:translateX(-50%); z-index:12; background:#fdf6e4; color:#2e7d32;
     border:4px solid #5a3d1e; font-size:16px; font-weight:bold; padding:5px 14px; display:none; box-shadow:3px 3px 0 rgba(0,0,0,.3); }
-  #fp-steal-msg.bad { color:#c62828; }
+#fp-steal-msg.bad { color:#c62828; }
+  #fp-hint { position:absolute; left:50%; top:116px; transform:translateX(-50%); z-index:12; background:#1c2f18; color:#ffe9a8;
+    border:3px solid #5a3d1e; font-size:14px; padding:4px 12px; display:none; box-shadow:3px 3px 0 rgba(0,0,0,.3); white-space:nowrap; }
+  #fp-hint.bad { color:#ffd9a0; background:#4a2c0e; border-color:#8a5c2c; }
   .fp-actor { position:absolute; z-index:11; cursor:pointer; user-select:none; touch-action:none; }
   .fp-actor img { display:block; image-rendering:pixelated; }
   .fp-actor .tag { text-align:center; font-size:12px; font-weight:bold; background:linear-gradient(180deg,#6b4a2a,#4a3218); color:#ffe9a8;
@@ -903,8 +906,9 @@ width:720px; max-width:calc(100vw - 28px); max-height:82vh; display:flex; flex-d
       <div id="fp-grids">
         <div id="fp-field-wrap"><div class="fp-sign" id="fp-field-sign" title="好友菜园"><img alt="好友菜园"/><span>好友菜园</span></div><div id="fp-field"></div></div>
         <div id="fp-garden-wrap"><div class="fp-sign" id="fp-garden-sign" title="好友花园"><img alt="好友花园"/><span>好友花园</span></div><div id="fp-garden"></div></div>
-      </div>
+</div>
       <div id="fp-steal-msg"></div>
+      <div id="fp-hint"></div>
     </div>
   </div>
 </div>
@@ -4066,10 +4070,13 @@ function pickFarmTask() {
 }
 // 狗狗只帮忙农事（浇水/施肥/除草），不偷吃菜
 function pickPetFarmTask() { return pickFarmTask(); }
-// 夜晚判定：晚上 19:00 - 次日 6:00（游戏内 24 小时制）
+// 夜晚判定：晚上 19:00 - 次日 6:00（游戏内 24 小时制）；h 缺省按清晨 6 点（白天）
+function isNightOf(h) {
+  const hh = (typeof h === "number") ? h : 6;
+  return hh >= 19 || hh < 6;
+}
 function isNight() {
-  const h = (typeof G.hour === "number") ? G.hour : 6;
-  return h >= 19 || h < 6;
+  return isNightOf(G.hour);
 }
 
 // 田格/花盆中心像素坐标（相对 scene；用 offsetLeft 链累加，避免 transform 缩放污染）
@@ -4177,6 +4184,19 @@ function doFarmAction(a) {
 }
 function doMischief(a, t) {
   clearCellHl(t);
+  // 守夜狗驱赶：夜间自家有守夜狗在场时，猫咪的偷吃/踩踏有 65% 被当场逮住赶跑
+  const aKind = a.kind || (PET_MODELS[a.model] && PET_MODELS[a.model].kind);
+  const guardDogs = (G.pets || []).filter(p => p.guard && p.kind === "dog");
+  if (aKind === "cat" && isNight() && guardDogs.length && Math.random() < 0.65) {
+    const gd = guardDogs[Math.floor(Math.random() * guardDogs.length)];
+    a.farmTask = null; a.badT = 0; a.mode = "idle";
+    a.scaredT = 2 + Math.random() * 2;   // 被狗吓到，慌乱逃跑
+    say(a.div, shooCatLine(a));
+    const gdActor = actors.find(x => x.id === gd.id);
+    if (gdActor) say(gdActor.div, petLine(gd, "guard"));
+    toast("🐕 " + (gd.name || "守夜狗") + " 逮住了 " + a.name + "，汪汪两声把它赶出了菜地！");
+    return;
+  }
   const c = t.kind === "field" ? G.field[t.i] : G.garden[t.i];
   const actorName = a.name;
   const line = missLine(a, t.act);
@@ -5047,7 +5067,20 @@ function openFriendFarm(username) {
     document.querySelectorAll("#fp-world .fp-cell").forEach(el => {
       el.onclick = () => fpGoCell(el);
     });
-    fitFp();
+fitFp();
+    // 守夜狗 + 昼夜提示条（偷菜仅限夜间，白天提示等待）
+    const fph = $("fp-hint");
+    if (fph) {
+      const fh = FP.farm && (typeof FP.farm.hour === "number") ? FP.farm.hour : G.hour;
+      const dNight = isNightOf(fh);
+      const gd = (FP.farm.pets || []).find(p => p.guard && p.kind === "dog");
+      fph.textContent = (dNight
+        ? "🌙 夜黑风高，正是偷菜好时机"
+        : "☀️ 大白天（好友农场 " + Math.floor(fh) + " 点）不能偷菜，晚上 19 点后再来")
+        + (gd ? " · 🐕 " + gd.name + " 守夜巡逻中，偷菜可能被赶跑" : "");
+      fph.className = dNight ? "" : "bad";
+      fph.style.display = "block";
+    }
     fpMsg("👀 走近金黄色的成熟作物，点格子就能摘（每好友每日限 3 次）");
   }).catch(e => { fpMsg("加载失败：" + ((e && e.message) || ""), true); });
 }
@@ -5056,6 +5089,9 @@ function fpGoCell(el) {
   if (!FP || !FP.hero) return;
   const kind = el.dataset.kind, idx = parseInt(el.dataset.idx, 10);
   if (!el.classList.contains("ripe")) { fpMsg("🌱 这块还没成熟，偷不了", true); return; }
+  // 好友偷菜仅限夜间：以对方农场当前小时为准，白天直接拦下
+  const fh = FP.farm && (typeof FP.farm.hour === "number") ? FP.farm.hour : G.hour;
+  if (!isNightOf(fh)) { fpMsg("☀️ 现在是白天（好友农场 " + Math.floor(fh) + " 点），晚上 19 点后才能偷菜！", true); return; }
   const p = fpCellPos(kind, idx);
   FP.hero.pending = { kind, idx };
   FP.hero.tx = Math.max(20, Math.min(1080 - 64, p.x - 46));
