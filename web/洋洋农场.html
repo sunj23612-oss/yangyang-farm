@@ -285,8 +285,14 @@
     filter:drop-shadow(0 1px 1px rgba(0,0,0,.5));
     pointer-events:none;
   }
-  .cell.hint { outline:4px dashed #ffe082; outline-offset:-2px; }
+.cell.hint { outline:4px dashed #ffe082; outline-offset:-2px; }
   .cell.farmed, .pot.farmed { outline:3px solid rgba(255,224,130,.85); outline-offset:-3px; transition:outline .15s; }
+  /* 成熟可采摘标志：金色脉冲虚线框 + 发光徽章（菜园与花园通用） */
+  .cell.ripe, .pot.ripe { outline:3px dashed #ffd54f; outline-offset:-2px; animation: ripePulse 1.1s ease-in-out infinite; z-index:2; }
+  @keyframes ripePulse { 0%,100%{ outline-color:#ffd54f; box-shadow:0 0 4px rgba(255,213,79,.35); } 50%{ outline-color:#ffb300; box-shadow:0 0 10px rgba(255,190,60,.75); } }
+  .cell .ripe-badge, .pot .ripe-badge { position:absolute; top:-9px; right:-9px; font-size:16px; line-height:1;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.45)); animation: ripeBump 1.1s ease-in-out infinite; pointer-events:none; z-index:3; }
+  @keyframes ripeBump { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.3); } }
 
   /* ===== 花园（木质花箱） ===== */
   #garden-wrap { position:absolute; right:27px; top:252px; z-index:5; }
@@ -1475,12 +1481,13 @@ const PAL = {
 
 const CROPS = {
   // 蔬菜成熟时间统一延长约 50%，鲜花规则不变。
-  cabbage:  { name:"白菜",   seed:10, sell:16, grow:30, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} },
-  carrot:   { name:"胡萝卜", seed:14, sell:24, grow:39, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fOrange} },
-  tomato:   { name:"西红柿", seed:16, sell:28, grow:48, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fRed} },
-  corn:     { name:"玉米",   seed:18, sell:32, grow:60, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fYellow} },
-  potato:   { name:"土豆",   seed:12, sell:20, grow:36, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.soilD} },
-  eggplant: { name:"茄子",   seed:20, sell:36, grow:69, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fPurple} }
+  // season: 应季季节（0春 1夏 2秋 3冬），应季生长 1.0x，反季生长 0.5x（蔬菜按季节生长）
+  cabbage:  { name:"白菜",   seed:10, sell:16, grow:30, season:[2,3], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} },
+  carrot:   { name:"胡萝卜", seed:14, sell:24, grow:39, season:[0,2], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fOrange} },
+  tomato:   { name:"西红柿", seed:16, sell:28, grow:48, season:[1],   pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fRed} },
+  corn:     { name:"玉米",   seed:18, sell:32, grow:60, season:[1],   pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fYellow} },
+  potato:   { name:"土豆",   seed:12, sell:20, grow:36, season:[0,2], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.soilD} },
+  eggplant: { name:"茄子",   seed:20, sell:36, grow:69, season:[1,2], pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fPurple} }
 };
 
 const FLOWERS = {
@@ -3236,15 +3243,18 @@ function renderField() {
   let html = "";
   for (let i = 0; i < 24; i++) {
     const c = G.field[i];
-    let cls = "cell";
+let cls = "cell";
     if (c) cls += c.tilled ? " tilled" : " planted";
     // 荒地预警：开垦未种且空闲 >=2 天（下一天将退化）
     if (c && c.tilled && !c.crop && c.tilledDay && G.day - c.tilledDay >= 2) cls += " degraded";
+    // 成熟可采摘标志：stage>=3 金色脉冲框 + ✨ 徽章
+    const ripe = !!(c && c.crop && c.stage >= 3);
+    if (ripe) cls += " ripe";
     const img = cellImg(c, "field");
     // 瓦片底纹：未开垦显示草瓦片，已开垦显示土壤（wet 用湿土）
     const bg = c ? (c.wet ? TILE_ASSET["tile-soil-wet-c"] : TILE_ASSET["tile-soil-c"]) : TILE_ASSET["tile-grass-1"];
     const bgCol = c ? "#8a5a2e" : "#6aa04c";
-    html += `<div class="${cls}${c && c.hl ? " farmed" : ""}" data-fi="${i}" style="background-image:url('${bg}');background-size:cover;background-position:center;background-color:${bgCol};">${img ? `<img class="pixel" src="${img}">` : ""}${c && c.wet ? `<div class="wet"></div>` : ""}${c && c.weed ? `<div class="weed-badge">🌿</div>` : ""}${c && c.fert ? `<div class="fert-badge">${"🟤".repeat(c.fert)}</div>` : ""}</div>`;
+    html += `<div class="${cls}${c && c.hl ? " farmed" : ""}" data-fi="${i}" style="background-image:url('${bg}');background-size:cover;background-position:center;background-color:${bgCol};">${img ? `<img class="pixel" src="${img}">` : ""}${ripe ? `<div class="ripe-badge">✨</div>` : ""}${c && c.wet ? `<div class="wet"></div>` : ""}${c && c.weed ? `<div class="weed-badge">🌿</div>` : ""}${c && c.fert ? `<div class="fert-badge">${"🟤".repeat(c.fert)}</div>` : ""}</div>`;
   }
   fieldEl.innerHTML = html;
   fieldEl.querySelectorAll(".cell").forEach(el => {
@@ -3253,10 +3263,12 @@ function renderField() {
 }
 function renderGarden() {
   let html = "";
-  for (let i = 0; i < 12; i++) {
+for (let i = 0; i < 12; i++) {
     const c = G.garden[i];
+    // 花成熟（盛开）同样显示可采摘标志：金色脉冲框 + ✨ 徽章
+    const ripe = !!(c && c.flower && c.stage >= 3);
     const img = cellImg(c, "garden");
-    html += `<div class="pot${c && c.hl ? " farmed" : ""}" data-gi="${i}">${img ? `<img class="pixel" src="${img}">` : ""}${c && c.wet ? `<div class="wet"></div>` : ""}${c && c.fert ? `<div class="fert-badge">${"🟤".repeat(c.fert)}</div>` : ""}</div>`;
+    html += `<div class="pot${ripe ? " ripe" : ""}${c && c.hl ? " farmed" : ""}" data-gi="${i}">${img ? `<img class="pixel" src="${img}">` : ""}${ripe ? `<div class="ripe-badge">✨</div>` : ""}${c && c.wet ? `<div class="wet"></div>` : ""}${c && c.fert ? `<div class="fert-badge">${"🟤".repeat(c.fert)}</div>` : ""}</div>`;
   }
   gardenEl.innerHTML = html;
   gardenEl.querySelectorAll(".pot").forEach(el => {
@@ -3299,9 +3311,13 @@ function doCellAct(i, kind) {
       if ((G.inv[invKey] || 0) <= 0) { toast("没有这个种子了，去商店买"); return; }
       if (!spendEnergy(2)) return;
       G.inv[invKey] -= 1;
-      G.field[i] = { crop: selectedSeed, stage: 0, prog: 0, wet: false, weed: false };
+G.field[i] = { crop: selectedSeed, stage: 0, prog: 0, wet: false, weed: false };
       addExp(3);
-      toast("🌱 种下了 " + CROPS[selectedSeed].name + "！");
+      const _sf = cropSeasonFactor(selectedSeed);
+      // 应季播种发芽慢半拍也更稳；反季播下会长得慢，提示玩家换应季作物
+      toast(_sf >= 1
+        ? "🌱 种下了 " + CROPS[selectedSeed].name + "！现在正是" + SEASON_NAMES[seasonIdx()] + "季，长势正旺"
+        : "🌱 种下了 " + CROPS[selectedSeed].name + "…但现在是" + SEASON_NAMES[seasonIdx()] + "季，反季生长会慢一半，建议换应季作物（" + cropSeasonLabel(selectedSeed) + "）");
       renderField(); renderInvIfOpen(); return;
     }
     if (tool === "hoe") {
@@ -3394,10 +3410,11 @@ function tickGrowth() {
     if (c && c.crop) {
       // 长杂草：会偷走营养，减缓生长
       if (!c.weed && Math.random() < 0.008) { c.weed = true; changed = true; }
-      const grow = CROPS[c.crop].grow;
+const grow = CROPS[c.crop].grow;
       let step = c.wet ? 2 : 1;
       if (c.fert) step += c.fert;          // 肥料加速
       if (c.weed) step = Math.max(0.5, step * 0.5); // 杂草减缓
+      step *= cropSeasonFactor(c.crop);    // 蔬菜按季节生长：反季减半
       c.prog += step;
       const seg = grow / 3;
       const st = Math.min(3, Math.floor(c.prog / seg));
@@ -3439,9 +3456,9 @@ function refreshMarket() {
   Object.keys(CROPS).forEach(id => {
     const c = CROPS[id];
     const icon = cropFrames(id)[3];
-    buy += `<div class="list-row">
+buy += `<div class="list-row">
       <img class="pixel" src="${icon}">
-      <div><div class="row-name">${c.name}种子</div><div class="row-sub">种出果实可卖 ${c.sell} 币</div></div>
+      <div><div class="row-name">${c.name}种子</div><div class="row-sub">应季：${cropSeasonLabel(id)} · 种出果实可卖 ${c.sell} 币</div></div>
       <div class="row-right"><span>${c.seed} 币</span>
       <button class="btn small green" data-buy="seed_${id}">购买</button></div>
     </div>`;
@@ -4542,6 +4559,17 @@ function applySeason() {
   return idx;
 }
 function seasonIdx() { return Math.floor((G.day - 1) / 28) % 4; }
+// 蔬菜按季节生长：应季 1.0x，反季 0.5x（鲜花不受季节影响，保持原规则）
+function cropSeasonFactor(cropId) {
+  const c = CROPS[cropId];
+  if (!c || !c.season || !c.season.length) return 1;
+  return c.season.indexOf(seasonIdx()) >= 0 ? 1 : 0.5;
+}
+function cropSeasonLabel(cropId) {
+  const c = CROPS[cropId];
+  if (!c || !c.season || !c.season.length) return "四季皆宜";
+  return c.season.map(i => SEASON_NAMES[i] + "季").join("、");
+}
 function applyClockLabel() {
   const h = Math.floor((G.hour || 0));
   const hh = ("0" + (h % 24)).slice(-2) + ":00";
@@ -4757,8 +4785,9 @@ function sleepAtHome() {
     // 作物/花按跳过的一天推进生长（睡觉期间不加新杂草）
     (G.field || []).forEach(c => {
       if (!c || !c.crop) return;
-      const grow = CROPS[c.crop].grow;
+const grow = CROPS[c.crop].grow;
       let step = c.wet ? 2 : 1; if (c.fert) step += c.fert;
+      step *= cropSeasonFactor(c.crop);    // 蔬菜按季节生长：反季减半
       c.prog = Math.min(grow, c.prog + step * 240);
       c.stage = Math.min(3, Math.floor(c.prog / (grow / 3)));
     });
