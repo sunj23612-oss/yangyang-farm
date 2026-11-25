@@ -4187,12 +4187,19 @@ function pickCatAction(a) {
     if (c.stage >= 3) ripe.push({ kind:"garden", i, act:"steal" });
     else if (c.stage <= 1) young.push({ kind:"garden", i, act:"stomp" });
   });
-  // 破坏概率随好感度下降：fav=0 时与原版一致（偷吃 0.22 / 踩坏 0.14 合计 0.36），fav=100 时降至约 15%
+// 破坏概率随好感度下降：fav=0 时与原版一致（偷吃 0.22 / 踩坏 0.14 合计 0.36），fav=100 时降至约 15%
+  // 饱腹度调节：吃饱饱(>=80)破坏欲减半，很饿(<30)破坏欲上升 1.5 倍
   const petRec = (G.pets || []).find(p => p.id === a.id);
   const fav = petRec ? clampFav(petRec.fav) : 0;
-  const misRate = 0.36 * (1 - fav / 100 * 0.85);
+  const fed = petRec ? clampFed(petRec.fed) : 100;
+  let fedFactor = 1;
+  if (fed >= 80) fedFactor = 0.5;
+  else if (fed > 0 && fed < 30) fedFactor = 1.5;
+  const misRate = 0.36 * (1 - fav / 100 * 0.85) * fedFactor;
+  // 帮忙概率也受饱腹影响：吃饱更勤快，很饿(<30)变懒，饿扁了(=0)最不想干活
+  const helpP = fed === 0 ? 0.3 : (fed >= 80 ? 0.6 : (fed < 30 ? 0.4 : 0.5));
   const r = Math.random();
-  if (r < 0.5 && farm) return farm;                                   // 优先帮忙
+  if (r < helpP && farm) return farm;                                   // 优先帮忙
   if (r < 0.5 + misRate * 0.6111 && ripe.length) return ripe[Math.floor(Math.random()*ripe.length)]; // 偷吃（好感越高越收敛）
   if (r < 0.5 + misRate && young.length) return young[Math.floor(Math.random()*young.length)]; // 踩坏
   return null;                                                        // 去散步
@@ -4689,17 +4696,19 @@ function advanceDayCycle() {
   });
   if (fedWell) toast("🍖 " + fedWell + " 只宠物吃得饱饱，好感 +1！");
   if (fedStarved) toast("😿 " + fedStarved + " 只宠物饿扁了，好感 -3");
-  // 守夜结算：狗守夜一夜，天亮(0:00)略微掉好感（缓慢扣，逐夜累积；猫不可守夜不参与）
-  let guardN = 0;
+// 守夜结算：狗守夜一夜，天亮(0:00)略微掉好感（缓慢扣，逐夜累积；猫不可守夜不参与）
+  let guardN = 0, guardDrop = 0;
   (G.pets || []).forEach(p => {
     if (p && p.guard && p.kind === "dog" && (p.fav || 0) > 1) {
-      p.fav = clampFav((p.fav || 0) - 2);
+      // 饿着肚子守夜更辛苦：饱腹<30 额外多扣 1 好感
+      const drop = clampFed(p.fed) < 30 ? 3 : 2;
+      p.fav = clampFav((p.fav || 0) - drop);
       const ga = actors.find(x => x.id === p.id);
       if (ga) ga.fav = p.fav;
-      guardN++;
+      guardN++; guardDrop += drop;
     }
   });
-  if (guardN) toast("🐕 " + guardN + " 只守夜狗狗好感 -2（守夜辛苦啦）");
+  if (guardN) toast("🐕 " + guardN + " 只守夜狗狗好感 -" + guardDrop + "（守夜辛苦啦）");
   // 闲置土地退化：开垦未种且空闲 >=3 天 → 变回荒地
   let degraded = 0;
   for (let di = 0; di < G.field.length; di++) {
