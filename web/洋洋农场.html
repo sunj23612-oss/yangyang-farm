@@ -1474,12 +1474,13 @@ const PAL = {
 };
 
 const CROPS = {
-  cabbage:  { name:"白菜",   seed:10, sell:16, grow:20, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} },
-  carrot:   { name:"胡萝卜", seed:14, sell:24, grow:26, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fOrange} },
-  tomato:   { name:"西红柿", seed:16, sell:28, grow:32, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fRed} },
-  corn:     { name:"玉米",   seed:18, sell:32, grow:40, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fYellow} },
-  potato:   { name:"土豆",   seed:12, sell:20, grow:24, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.soilD} },
-  eggplant: { name:"茄子",   seed:20, sell:36, grow:46, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fPurple} }
+  // 蔬菜成熟时间统一延长约 50%，鲜花规则不变。
+  cabbage:  { name:"白菜",   seed:10, sell:16, grow:30, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fGreen} },
+  carrot:   { name:"胡萝卜", seed:14, sell:24, grow:39, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fOrange} },
+  tomato:   { name:"西红柿", seed:16, sell:28, grow:48, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fRed} },
+  corn:     { name:"玉米",   seed:18, sell:32, grow:60, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leaf,  f:PAL.fYellow} },
+  potato:   { name:"土豆",   seed:12, sell:20, grow:36, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.soilD} },
+  eggplant: { name:"茄子",   seed:20, sell:36, grow:69, pal:{t:PAL.soil, s:PAL.stem, g:PAL.leafD, f:PAL.fPurple} }
 };
 
 const FLOWERS = {
@@ -1556,7 +1557,7 @@ day: 1,
 cats: { dandan:{fav:0}, norway:{fav:0} },
     // —— 新模型：人物 1-2 人（含性别）、宠物 0-2 只（猫/狗 + 5 款模型）、手上装备槽 ——
     heroes: [
-      { id: "xu",  name: "徐明涛", gender: "male",   skin: "xu" },
+      { id: "xu",  name: "徐明韬", gender: "male",   skin: "xu" },
       { id: "sun", name: "孙靖宇", gender: "female", skin: "sun" }
     ],
     pets: [
@@ -1566,7 +1567,7 @@ cats: { dandan:{fav:0}, norway:{fav:0} },
     hand: { hoe: false, water: false, seed: null },
     mkt: null,
     custom: {
-      xu:     { name: "徐明涛", skin: "xu" },
+      xu:     { name: "徐明韬", skin: "xu" },
       sun:    { name: "孙靖宇", skin: "sun" },
       dandan: { name: "二蛋",   skin: "dan" },
       norway: { name: "挪威",   skin: "nor" },
@@ -2512,7 +2513,7 @@ const XU_SLEEP = [
 "................................"
 ];
 
-const XU_FRAMES = ASSET.xu;  // +素材(CC-BY) 徐明涛
+const XU_FRAMES = ASSET.xu;  // +素材(CC-BY) 徐明韬
 
 const SUN_PAL = { B:"#3a5ac0", b:"#2a408a", F:"#ffe8cf", f:"#e8b98f", E:"#2a2a3a", W:"#fff2e8", C:"#4a90d9", c:"#3368a8", D:"#2f4a7a", L:"#3a3a3a" };
 
@@ -2950,6 +2951,8 @@ window.addEventListener("keyup", e => {
   else if (k === "ArrowRight" || k === "d" || k === "D") keys.right = false;
 });
 const SKIN_FRAMES = { xu: XU_FRAMES, sun: SUN_FRAMES };   // 人物只有两套动画皮肤
+// 蓝衣短发为男（sun），红衣长发为女（xu）。按性别统一模型，兼容旧档。
+function heroSkin(gender) { return gender === "female" ? "xu" : "sun"; }
 // 宠物模型 → 行走动画帧数组（[idle, idle, 向左0, 向左1, idle, 向右0, 向右1, idle]）
 function petActorFrames(model) {
   const M = PET_MODELS[model] || PET_MODELS["dog_shep"];
@@ -2971,7 +2974,7 @@ function actorLook(id) {
   // 新体系：先查 G.heroes / G.pets，再回退旧 G.custom
   const hero = (G.heroes || []).find(h => h.id === id);
   if (hero) {
-    const skin = SKIN_FRAMES[hero.skin] ? hero.skin : "xu";
+    const skin = heroSkin(hero.gender);
     return { name: hero.name || "农夫", skin, frames: SKIN_FRAMES[skin], isPet: false };
   }
   const pet = (G.pets || []).find(p => p.id === id);
@@ -2986,7 +2989,7 @@ function actorLook(id) {
     return { name: c.name || "阿黄", skin: "dog", frames: [D[0], D[0], D[1], D[2], D[0], D[3], D[4], D[0]], isPet: true };
   }
   const skin = (SKIN_FRAMES[c.skin] ? c.skin : (SKIN_FRAMES[alias] ? alias : "xu"));
-  const name = c.name || { xu:"徐明涛", sun:"孙靖宇", dandan:"二蛋", norway:"挪威" }[id] || id;
+  const name = c.name || { xu:"徐明韬", sun:"孙靖宇", dandan:"二蛋", norway:"挪威" }[id] || id;
   return { name, skin, frames: SKIN_FRAMES[skin] || DAN_FRAMES, isPet: !SKIN_FRAMES[skin] };
 }
 function spawnActor(id, name, frames, canSleep, isPet) {
@@ -3907,7 +3910,7 @@ function applySaveData(d) {
     G.heroes = d.heroes.slice(0, 2).map(h => ({
       id: String((h && h.id) || "xu"), name: String((h && h.name) || "洋洋"),
       gender: h && h.gender === "female" ? "female" : "male",
-      skin: (h && h.gender === "female") ? "sun" : "xu"   // 形象随性别：男小徐 xu、女阿阳 sun
+      skin: heroSkin(h && h.gender === "female" ? "female" : "male")   // 形象随性别：男 sun、女 xu
     }));
   }
   if (Array.isArray(d.pets)) {
@@ -4470,7 +4473,7 @@ a.img.src = (Math.floor(a.walkF) % 2 === 0) ? a.frames[5] : (a.frames[6] || a.fr
       if (!dx && !dy) { a.mode = "idle"; a.timer = 0.5; a.div.style.top = a.y + "px"; return; }
       a.walkF += 0.3;
       const bob = (Math.floor(a.walkF * 2) % 2 === 0) ? 0 : -2;
-      const step = a.speed * 0.2;
+      const step = a.speed * 0.24;
       const len = Math.hypot(dx, dy) || 1;
       a.x = Math.max(20, Math.min(1080 - 64, a.x + dx / len * step));
       a.y = Math.max(238, Math.min(640 - 44, a.y + dy / len * step));
@@ -5133,7 +5136,7 @@ function heroRowEl(h, i) {
   const row = document.createElement("div");
   row.className = "hero-row";
   const sex = h.gender === "female" ? "female" : "male";
-  const skin = sex === "female" ? "sun" : "xu";   // 形象与性别绑定：男小徐 xu、女阿阳 sun
+  const skin = heroSkin(sex);   // 男蓝衣短发（sun）、女红衣长发（xu）
   row.innerHTML = '<span class="row-no">' + (i + 1) + "</span>" +
     '<label>名</label><input type="text" class="in-name" maxlength="8" value="' + escHtml(nameOf(h, "农夫")) + '">' +
     '<label>性别</label><select class="sel-sex">' +
@@ -5175,7 +5178,7 @@ const isDog = kind === "dog";
 function nameOf(o, fb) { return (o && o.name && String(o.name).trim()) || fb; }
 function fillCustomForm() {
   const ff = $("custom-farm-name"); if (ff) ff.value = G.farmName || "洋洋农场";
-  G.heroes = (G.heroes && G.heroes.length) ? G.heroes.slice(0, 2) : [{ id:"h1", name:"徐明涛", gender:"male", skin:"xu" }];
+  G.heroes = (G.heroes && G.heroes.length) ? G.heroes.slice(0, 2) : [{ id:"h1", name:"徐明韬", gender:"male", skin:"xu" }];
   G.pets   = (G.pets && G.pets.length) ? G.pets.slice(0, 2) : [];
   renderCustomRows();
 }
@@ -5185,7 +5188,7 @@ function renderCustomRows() {
   document.querySelectorAll("#hero-rows .hero-row").forEach((row, i) => {
     stashH[i] = { name: row.querySelector(".in-name").value.trim(),
                   gender: row.querySelector(".sel-sex").value,
-                  skin: row.querySelector(".sel-sex").value === "female" ? "sun" : "xu" };
+                  skin: heroSkin(row.querySelector(".sel-sex").value) };
   });
 document.querySelectorAll("#pet-rows .pet-row").forEach((row, i) => {
     const chk = row.querySelector(".chk-guard");
@@ -5231,7 +5234,7 @@ $("btn-custom-save").onclick = () => {
   document.querySelectorAll("#hero-rows .hero-row").forEach((row, i) => {
     const id = (G.heroes[i] && G.heroes[i].id) || "h" + (i + 1);
     hs.push({ id, name: (row.querySelector(".in-name").value.trim() || "农夫" + (i + 1)).slice(0, 8),
-              gender: row.querySelector(".sel-sex").value, skin: row.querySelector(".sel-sex").value === "female" ? "sun" : "xu" });
+              gender: row.querySelector(".sel-sex").value, skin: heroSkin(row.querySelector(".sel-sex").value) });
   });
 document.querySelectorAll("#pet-rows .pet-row").forEach((row, i) => {
     const kind = row.querySelector(".sel-kind").value;
